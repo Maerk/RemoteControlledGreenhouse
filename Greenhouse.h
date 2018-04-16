@@ -23,7 +23,13 @@ class Greenhouse
 {
 private:
     DHT_Unified* dht;
-    
+    int32_t dht_pin;
+    int32_t waterlevel_pin;
+    int32_t moisture_pin;
+    int32_t photoresistor_pin;
+    int32_t fan_pin;
+    int32_t valve_pin;
+    int32_t light_pin;
     /*Data*/
     vector<TimeTable> week_tt;
     bool irrigation_time; //true: i use the week time table
@@ -33,18 +39,18 @@ private:
     bool day_light; //true: there's the sun light
     uint8_t min_env_humidity; // %
     uint8_t max_env_humidity; 
-    uint8_t min_ground_humidity; // %
+    uint8_t min_ground_humidity; // [0-4]
     uint8_t max_ground_humidity; 
     float min_temperature; // C
     float max_temperature;
     //uint8_t water_alarm_level; // %
     uint8_t env_humidity; // %
-    uint8_t ground_humidity; // %
-    uint8_t water_level; // %
+    uint8_t ground_humidity; //[0;1;2;3]
+    uint8_t water_level; // [0;1;2;3]
     float temperature; // C
 
 public:
-    Greenhouse();
+    Greenhouse(int32_t dht_pin = D4, int32_t waterlevel_pin = D3, int32_t moisture_pin = D2, int32_t photoresistor_pin = D5, int32_t fan_pin = D0, int32_t valve_pin = D1, int32_t light_pin = D6);
     float getTemperature();
     float getMaxTemperature();
     float getMinTemperature(); 
@@ -61,7 +67,7 @@ public:
     bool getFanState();
     bool getValveState();
     vector<TimeTable> getWeekTimeTable();
-    bool getIrrigationState()
+    bool getIrrigationState();
 
     void setMaxTemperature(float temperature);
     void setMinTemperature(float temperature);

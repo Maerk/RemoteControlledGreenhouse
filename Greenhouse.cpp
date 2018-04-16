@@ -4,40 +4,46 @@
 
 #include "Greenhouse.h"
 
-Greenhouse::Greenhouse()
+Greenhouse::Greenhouse(int32_t dht_pin, int32_t waterlevel_pin, int32_t moisture_pin, int32_t photoresistor_pin, int32_t fan_pin, int32_t valve_pin, int32_t light_pin)
 {
-    dht = new DHT_Unified(D2, DHT11); //pin,type
+    this->dht_pin = dht_pin;
+    this->waterlevel_pin = waterlevel_pin;
+    this->moisture_pin = moisture_pin;
+    this->photoresistor_pin = photoresistor_pin;
+    this->fan_pin = fan_pin;
+    this->valve_pin = valve_pin;
+    this->light_pin = light_pin;
+    dht = new DHT_Unified(dht_pin, DHT11); //pin,type
+    pinMode(waterlevel_pin, OUTPUT);
+    pinMode(moisture_pin, OUTPUT);
+    pinMode(photoresistor_pin, INPUT);
+    pinMode(fan_pin, OUTPUT);
+    pinMode(valve_pin, OUTPUT);
+    pinMode(light_pin, OUTPUT);
+    pinMode(A0,INPUT);
+    dht->begin();
+    
     irrigation_time = false;
     light_state = false;
     fan_state = false;
-    water_state = false;
+    valve_state = false;
     day_light = false;
     min_env_humidity = 20; // %
     max_env_humidity = 85; 
-    min_ground_humidity = 20; // %
-    max_ground_humidity = 70; 
+    min_ground_humidity = 1; // [0-4]
+    max_ground_humidity = 3; 
     min_temperature = 10.0; // C
     max_temperature = 47.0;
-    water_alarm_level = 10; // %
+    //water_alarm_level = 1; // [0-4]
     
     env_humidity = 50; // %
-    ground_humidity = 50; // %
-    water_level = 50; // %
+    ground_humidity = 2; // [0-4]
+    water_level = 2; // [0-4]
     temperature = 23.0; // C
-    
-    pinMode(A0,INPUT);
-    dht->begin();
 }
 float Greenhouse::getTemperature()
 {
-    sensors_event_t event;  
-    dht->temperature().getEvent(&event);
-    if (isnan(event.temperature)) 
-    {
-       Serial.println("Error reading temperature!");
-       return -999.0;
-    }
-    return event.temperature;
+    return temperature;
 }
 float Greenhouse::getMaxTemperature()
 {
@@ -49,14 +55,7 @@ float Greenhouse::getMinTemperature()
 }
 uint8_t Greenhouse::getEnvHumidity()
 {
-    sensors_event_t event;
-    dht->humidity().getEvent(&event);
-    if (isnan(event.relative_humidity)) 
-    {
-        Serial.println("Error reading humidity!");
-        return 120;
-    }
-    return event.relative_humidity;
+    return env_humidity;
 }
 uint8_t Greenhouse::getMaxEnvHumidity()
 {
@@ -68,8 +67,7 @@ uint8_t Greenhouse::getMinEnvHumidity()
 }
 uint8_t Greenhouse::getGroundHumidity()
 {
-  return 42;
-    //return analogRead(A0);
+  return ground_humidity;
 }
 uint8_t Greenhouse::getMaxGroundHumidity()
 {
@@ -79,67 +77,71 @@ uint8_t Greenhouse::getMinGroundHumidity()
 {
     return max_ground_humidity;
 }
-uint8_t getWaterLevel()
+uint8_t Greenhouse::getWaterLevel()
 {
     return water_level;
 }
-//uint8_t getWaterAlarmLevel();
-bool getLightSensor()
+//uint8_t Greenhouse::getWaterAlarmLevel();
+bool Greenhouse::getLightSensor()
 {
     return day_light;
 }
-bool getLightState()
+bool Greenhouse::getLightState()
 {
     return light_state;
 }
-bool getFanState()
+bool Greenhouse::getFanState()
 {
     return fan_state;
 }
-bool getValveState()
+bool Greenhouse::getValveState()
 {
     return valve_state;
 }
-vector<TimeTable> getWeekTimeTable()
+vector<TimeTable> Greenhouse::getWeekTimeTable()
 {
     return week_tt;
 }
-bool getIrrigationState()
+bool Greenhouse::getIrrigationState()
 {
     return irrigation_time;
 }
-void setMaxTemperature(float temperature)
+void Greenhouse::setMaxTemperature(float temperature)
 {
     max_temperature = temperature;
 }
-void setMinTemperature(float temperature)
+void Greenhouse::setMinTemperature(float temperature)
 {
     min_temperature = temperature;
 }
-void setMaxEnvHumidity(uint8_t humidity)
+void Greenhouse::setMaxEnvHumidity(uint8_t humidity)
 {
     max_env_humidity = humidity;
 }
-void setMinEnvHumidity(uint8_t humidity)
+void Greenhouse::setMinEnvHumidity(uint8_t humidity)
 {
     min_env_humidity = humidity;
 }
-void setMaxGroundHumidity(uint8_t humidity)
+void Greenhouse::setMaxGroundHumidity(uint8_t humidity)
 {
     max_ground_humidity = humidity;
 }
-void setMinGroundHumidity(uint8_t humidity)
+void Greenhouse::setMinGroundHumidity(uint8_t humidity)
 {
     min_ground_humidity = humidity;
 }
-void turnLight(bool state)
+void Greenhouse::turnLight(bool state)
 {
     /*
     * turn light .........................
     */
+    if(state)
+        digitalWrite(light_pin, HIGH);
+    else
+        digitalWrite(light_pin, LOW);
     light_state = state;
 }
-void startFan(uint32_t seconds)
+void Greenhouse::startFan(uint32_t seconds)
 {
     fan_state = true;
     /*
@@ -147,7 +149,7 @@ void startFan(uint32_t seconds)
      */
     fan_state = false;
 }
-void startIrrigation(uint32_t seconds)
+void Greenhouse::startIrrigation(uint32_t seconds)
 {
     valve_state = true;
     /*
@@ -155,19 +157,63 @@ void startIrrigation(uint32_t seconds)
      */
     valve_state = false;
 }
-void addIrrigation(TimeTable tt)
+void Greenhouse::addIrrigation(TimeTable tt)
 {
     week_tt.push_back(tt);
 }
-void removeIrrigation(uint32_t index)
+void Greenhouse::removeIrrigation(uint32_t index)
 {
     if(index >= 0 && index < week_tt.size())
         week_tt.erase(week_tt.begin()+index);
 }
-void updateData()
+void Greenhouse::updateData()
 {
     /*
-     * read sensors data ..................
+     * read sensors data
      */
+    day_light = !digitalRead(photoresistor_pin);
+    sensors_event_t event;  
+    dht->temperature().getEvent(&event);
+    if (isnan(event.temperature)) 
+       Serial.println("Error reading temperature!");
+    else
+        temperature = event.temperature;
+    dht->humidity().getEvent(&event);
+    if (isnan(event.relative_humidity)) 
+        Serial.println("Error reading humidity!");
+    else
+        env_humidity = event.relative_humidity;
+        
+    digitalWrite(moisture_pin, HIGH);
+    delay(1000);
+    int reada = analogRead(A0);
+    if(reada<12)
+        ground_humidity = 0; //very low
+    else if(reada<46)
+        ground_humidity = 1; //low
+    else if(reada<90)
+        ground_humidity = 2; //medium
+    else
+        ground_humidity = 3; //high
+    //Serial.println("Moisture Sensor: " + String(ground_humidity));
+    digitalWrite(moisture_pin, LOW);
+    delay(200);
+    digitalWrite(waterlevel_pin, HIGH);
+    delay(1000);
+    reada = analogRead(A0);
+    if(reada<12)
+        water_level = 0; //empty
+    else if(reada<40)
+        water_level = 1; //low
+    else if(reada<50)
+        water_level = 2; //medium
+    else
+        water_level = 3; //high
+    //Serial.println("Water Level Sensor: " + String(water_level));
+    digitalWrite(waterlevel_pin, LOW);
+
+    /*Serial.println("Photoresistor Sensor: " + String(day_light));
+    Serial.println("Temperature Sensor: " + String(temperature));
+    Serial.println("Humidity Sensor: " + String(env_humidity));*/
 }
 
