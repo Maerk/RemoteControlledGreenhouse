@@ -1,6 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
 * License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+* file, You can obtain one at http://mozilla.org/MPL/2.0/.
+* 
+*        Copyright 2018 Marco De Nicolo
+*/
 
 #include "Greenhouse.hpp"
 
@@ -151,7 +154,6 @@ void Greenhouse::startFan(uint32_t seconds)
     /*
      * run fan ...........................
      */
-    fan_state = false;
 }
 void Greenhouse::startIrrigation(uint32_t seconds)
 {
@@ -159,7 +161,6 @@ void Greenhouse::startIrrigation(uint32_t seconds)
     /*
      * open valve ........................
      */
-    valve_state = false;
 }
 void Greenhouse::addIrrigation(TimeTable tt)
 {
@@ -175,6 +176,7 @@ void Greenhouse::updateData()
     /*
      * read sensors data
      */
+     
     day_light = !digitalRead(photoresistor_pin);
     
     sensors_event_t event;  
@@ -200,9 +202,10 @@ void Greenhouse::updateData()
         ground_humidity = 2; //medium
     else
         ground_humidity = 3; //high
-    //Serial.println("Moisture Sensor: " + String(ground_humidity));
     digitalWrite(moisture_pin, LOW);
+    
     delay(200);
+    
     digitalWrite(waterlevel_pin, HIGH);
     delay(1500);
     reada = analogRead(A0);
@@ -214,10 +217,15 @@ void Greenhouse::updateData()
         water_level = 2; //medium
     else
         water_level = 3; //high
-    //Serial.println("Water Level Sensor: " + String(water_level));
     digitalWrite(waterlevel_pin, LOW);
 
-    /*Serial.println("Photoresistor Sensor: " + String(day_light));
+    //Fan timer control and set fan_state=false
+
+    //Valve timer control and set valve_state=false
+
+    /*Serial.println("Moisture Sensor: " + String(ground_humidity));
+    Serial.println("Water Level Sensor: " + String(water_level));
+    Serial.println("Photoresistor Sensor: " + String(day_light));
     Serial.println("Temperature Sensor: " + String(temperature));
     Serial.println("Humidity Sensor: " + String(env_humidity));*/
 }

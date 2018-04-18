@@ -1,6 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
 * License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+* file, You can obtain one at http://mozilla.org/MPL/2.0/.
+* 
+*        Copyright 2018 Marco De Nicolo
+*/
 
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
@@ -185,24 +188,24 @@ void receiverOSC()
             messageIN.route("/getEnvHumidity", sendEnvHumidity);
             messageIN.route("/getGroundHumidity", sendGroundHumidity);
             messageIN.route("/getWaterLevel", sendWaterLevel);
-            messageIN.route("/getLightSensor", sendLightSensor); //the sensor return 1 or 0
-            //messageIN.route("/getWeekTimeTable", sendWeekTimeTable) //return week_tt
+            messageIN.route("/getLightSensor", sendLightSensor); //sensor return 1(day) or 0(night)
+            //messageIN.route("/getWeekTimeTable", sendWeekTimeTable) //return week time table with indexes
             
-            messageIN.route("/setMaxTemperature", setMaxTemperature);  //temperatura massima prima di avviare ventola
-            messageIN.route("/setMinTemperature", setMinTemperature); //temperatura minima prima di accendere luce (?)
-            messageIN.route("/setMaxEnvHumidity", setMaxEnvHumidity);  //umidità massima prima di accendere ventola
-            messageIN.route("/setMinEnvHumidity", setMinEnvHumidity);  //entra in allarme e controlla che la ventola sia spenta
-            messageIN.route("/setMaxGroundHumidity", setMaxGroundHumidity); //livello massimo umidità terreno, entra in allarme e controlla che sia chiusa l'acqua
-            messageIN.route("/setMinGroundHumidity", setMinGroundHumidity); //livello minimo prima di far partire irrigazione
-            //messageIN.route("/setAlarmWaterLevel", setAlarmWaterLevel); //livello allarme acqua (?)
+            messageIN.route("/setMaxTemperature", setMaxTemperature);  //maximum temperature before starting fan
+            messageIN.route("/setMinTemperature", setMinTemperature); //minimum temperature before stopping fan (if is running) and turn on light (?)
+            messageIN.route("/setMaxEnvHumidity", setMaxEnvHumidity);  //maximum humidity before starting fan
+            messageIN.route("/setMinEnvHumidity", setMinEnvHumidity);  //minimum temperature before stopping fan (if is running)
+            messageIN.route("/setMaxGroundHumidity", setMaxGroundHumidity); //maximum ground humidity, check if the valve is open and close it
+            messageIN.route("/setMinGroundHumidity", setMinGroundHumidity); //minimum ground humidity before starting irrigation
+            //messageIN.route("/setAlarmWaterLevel", setAlarmWaterLevel); //alarm water level (?)
 
-            messageIN.route("/addIrrigationTime", addIrrigationTime);  //ho un orario di irrigazione che passo come parametro [(WeekDay,Hour,Min), ...]
-            messageIN.route("/removeIrrigationTime", removeIrrigationTime);  //rimuovo l'innaffiatura all'indice X di week_tt
-            messageIN.route("/autoIrrigation", setIrrigationTime);  //setto irrigation_time = true con 1 o false con 0
+            messageIN.route("/addIrrigationTime", addIrrigationTime);  //it's the time of the waterings, parameters:[(WeekDay,Hour,Min), ...]
+            messageIN.route("/removeIrrigationTime", removeIrrigationTime);  //remove a time of the waterings, parameter: index of the week time table
+            messageIN.route("/autoIrrigation", setIrrigationTime);  //if 1 set irrigation_time = true else false
             
-            messageIN.route("/startIrrigation", startIrrigation);  //apre l'acqua per T secondi
-            messageIN.route("/startFan", startFan);  //parte ventola per T secondi
-            messageIN.route("/light", setLight);  //accende luce con 1 e spegne con 0
+            messageIN.route("/startIrrigation", startIrrigation);  //open the valve for T seconds
+            messageIN.route("/startFan", startFan);  //start fan for T seconds
+            messageIN.route("/light", setLight);  //if 1 turn on  the light else turn off
         }
         else 
             Serial.println("Error: " + messageIN.getError());

@@ -1,6 +1,9 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
 * License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+* file, You can obtain one at http://mozilla.org/MPL/2.0/.
+* 
+*        Copyright 2018 Marco De Nicolo
+*/
 
 #ifndef GREENHOUSE_HPP
 #define GREENHOUSE_HPP
@@ -15,8 +18,8 @@ using namespace std;
 typedef struct _TimeTable 
 {
     uint8_t day; // 0 mon, ...6 sun
-    uint8_t h; //hours 0 to 23
-      uint8_t m; //min 0 to 59 
+    uint8_t h; // hours 0 to 23
+      uint8_t m; // min 0 to 59 
 }TimeTable; 
 
 class Greenhouse
@@ -33,21 +36,21 @@ private:
     int32_t light_pin;
     /*Data*/
     vector<TimeTable> week_tt;
-    bool irrigation_time; //true: i use the week time table
-    bool light_state; //true: light is on
-    bool fan_state; //true: fan is on
-    bool valve_state; //true: the valve is open
-    bool day_light; //true: there's the sun light
+    bool irrigation_time; // true: i use the week time table
+    bool light_state; // true: light is on
+    bool fan_state; // true: fan is on
+    bool valve_state; // true: the valve is open
+    bool day_light; // true: there's the sun light
     uint8_t min_env_humidity; // %
-    uint8_t max_env_humidity; 
-    uint8_t min_ground_humidity; // [0-4]
-    uint8_t max_ground_humidity; 
+    uint8_t max_env_humidity; // %
+    uint8_t min_ground_humidity; // {0;1;2;3}
+    uint8_t max_ground_humidity; // {0;1;2;3}
     float min_temperature; // C
-    float max_temperature;
-    //uint8_t water_alarm_level; // %
+    float max_temperature; // C
+    //uint8_t water_alarm_level; // {0;1;2;3}
     uint8_t env_humidity; // %
-    uint8_t ground_humidity; //[0;1;2;3]
-    uint8_t water_level; // [0;1;2;3]
+    uint8_t ground_humidity; // {0;1;2;3}
+    uint8_t water_level; // {0;1;2;3}
     float temperature; // C
 
 public:
