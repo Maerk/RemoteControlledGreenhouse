@@ -2,8 +2,8 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef GREENHOUSE
-#define GREENHOUSE
+#ifndef GREENHOUSE_HPP
+#define GREENHOUSE_HPP
 
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
@@ -21,6 +21,7 @@ typedef struct _TimeTable
 
 class Greenhouse
 {
+  
 private:
     DHT_Unified* dht;
     int32_t dht_pin;
@@ -68,13 +69,15 @@ public:
     bool getValveState();
     vector<TimeTable> getWeekTimeTable();
     bool getIrrigationState();
-
+    
     void setMaxTemperature(float temperature);
     void setMinTemperature(float temperature);
     void setMaxEnvHumidity(uint8_t humidity);
     void setMinEnvHumidity(uint8_t humidity);
     void setMaxGroundHumidity(uint8_t humidity);
     void setMinGroundHumidity(uint8_t humidity);
+    void setIrrigationState(bool state);
+    
     void turnLight(bool state);
     void startFan(uint32_t seconds);
     void startIrrigation(uint32_t seconds);

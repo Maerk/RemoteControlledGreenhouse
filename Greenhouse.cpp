@@ -2,7 +2,7 @@
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "Greenhouse.h"
+#include "Greenhouse.hpp"
 
 Greenhouse::Greenhouse(int32_t dht_pin, int32_t waterlevel_pin, int32_t moisture_pin, int32_t photoresistor_pin, int32_t fan_pin, int32_t valve_pin, int32_t light_pin)
 {
@@ -130,6 +130,10 @@ void Greenhouse::setMinGroundHumidity(uint8_t humidity)
 {
     min_ground_humidity = humidity;
 }
+void Greenhouse::setIrrigationState(bool state)
+{
+    irrigation_time = state;
+}
 void Greenhouse::turnLight(bool state)
 {
     /*
@@ -172,6 +176,7 @@ void Greenhouse::updateData()
      * read sensors data
      */
     day_light = !digitalRead(photoresistor_pin);
+    
     sensors_event_t event;  
     dht->temperature().getEvent(&event);
     if (isnan(event.temperature)) 
@@ -185,7 +190,7 @@ void Greenhouse::updateData()
         env_humidity = event.relative_humidity;
         
     digitalWrite(moisture_pin, HIGH);
-    delay(1000);
+    delay(1500);
     int reada = analogRead(A0);
     if(reada<12)
         ground_humidity = 0; //very low
@@ -199,7 +204,7 @@ void Greenhouse::updateData()
     digitalWrite(moisture_pin, LOW);
     delay(200);
     digitalWrite(waterlevel_pin, HIGH);
-    delay(1000);
+    delay(1500);
     reada = analogRead(A0);
     if(reada<12)
         water_level = 0; //empty
