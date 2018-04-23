@@ -12,6 +12,7 @@
 #include <DHT.h>
 #include <DHT_U.h>
 #include <vector>
+#define MAX_TT_SIZE 254
 
 using namespace std;
 

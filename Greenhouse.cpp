@@ -164,7 +164,8 @@ void Greenhouse::startIrrigation(uint32_t seconds)
 }
 void Greenhouse::addIrrigation(TimeTable tt)
 {
-    week_tt.push_back(tt);
+    if(week_tt.size() < MAX_TT_SIZE)
+        week_tt.push_back(tt);
 }
 void Greenhouse::removeIrrigation(uint32_t index)
 {

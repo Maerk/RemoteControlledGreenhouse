@@ -18,7 +18,7 @@ using namespace std;
 
 #define PORT 7400
 WiFiUDP Udp;
-const byte MAX_MSG_SIZE PROGMEM=100;
+const byte MAX_MSG_SIZE PROGMEM=200;
 byte packetBuffer[MAX_MSG_SIZE];  //buffer to hold incoming udp packet
 const String ssid="router_ssid";
 const String pass = "router_password";
@@ -51,6 +51,7 @@ void setup()
 
 void senderOSC(OSCMessage& msg)
 {
+    Serial.printf("send to: %s - %d\n",Udp.remoteIP().toString().c_str(),Udp.remotePort());
     Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
     msg.send(Udp);
     Udp.endPacket();
@@ -61,6 +62,7 @@ void sendTemperature(OSCMessage& msg, int addrOffset)
 {
     OSCMessage smsg("/temperature");
     smsg.add((float)GH->getTemperature());
+    Serial.println((float)GH->getTemperature());
     senderOSC(smsg); 
 }
 
@@ -68,6 +70,7 @@ void sendEnvHumidity(OSCMessage& msg, int addrOffset)
 {
     OSCMessage smsg("/envHumidity");
     smsg.add((int)GH->getEnvHumidity());
+    Serial.println(GH->getEnvHumidity());
     senderOSC(smsg);
 }
 
@@ -92,14 +95,47 @@ void sendLightSensor(OSCMessage& msg, int addrOffset)
     senderOSC(smsg);
 }
 
-/*void sendWeekTimeTable(OSCMessage& msg, int addrOffset)
+void sendWeekTimeTable(OSCMessage& msg, int addrOffset)
 {
-    OSCMessage* msg("/weekTimeTable");
-    vector<TimeTable> tt = GH->getWeekTimeTable;
-    msg.add((int)GH->getLightSensor());
-    senderOSC(msg);
-}*/
+    OSCMessage smsg("/weekTimeTable");
+    vector<TimeTable> tt = GH->getWeekTimeTable();
+    for(int i=0; i<tt.size(); i++)
+    {
+        smsg.add(i);
+        smsg.add((int)tt[i].day);
+        smsg.add((int)tt[i].h);
+        smsg.add((int)tt[i].m);
+    }
+    senderOSC(smsg);
+}
 
+void sendLightState(OSCMessage& msg, int addrOffset)
+{
+    OSCMessage smsg("/lightState");
+    smsg.add((int)GH->getLightState());
+    senderOSC(smsg);
+}
+
+void sendValveState(OSCMessage& msg, int addrOffset)
+{
+    OSCMessage smsg("/valveState");
+    smsg.add((int)GH->getValveState());
+    senderOSC(smsg);
+}
+
+void sendFanState(OSCMessage& msg, int addrOffset)
+{
+    OSCMessage smsg("/fanState");
+    smsg.add((int)GH->getFanState());
+    senderOSC(smsg);
+}
+
+void sendIrrigationState(OSCMessage& msg, int addrOffset)
+{
+    OSCMessage smsg("/irrigationState");
+    smsg.add((int)GH->getIrrigationState());
+    senderOSC(smsg);
+}
 void setMaxTemperature(OSCMessage& msg, int addrOffset) 
 {
     GH->setMaxTemperature(msg.getFloat(0));
@@ -189,7 +225,15 @@ void receiverOSC()
             messageIN.route("/getGroundHumidity", sendGroundHumidity);
             messageIN.route("/getWaterLevel", sendWaterLevel);
             messageIN.route("/getLightSensor", sendLightSensor); //sensor return 1(day) or 0(night)
-            //messageIN.route("/getWeekTimeTable", sendWeekTimeTable) //return week time table with indexes
+            messageIN.route("/getWeekTimeTable", sendWeekTimeTable); //return week time table with indexes
+            
+            messageIN.route("/getLightState", sendLightState);
+            messageIN.route("/getValveState", sendValveState);
+            messageIN.route("/getFanState", sendFanState);
+            messageIN.route("/getIrrigationState", sendIrrigationState);
+            //get state of fan valve light and autoirrigation
+
+
             
             messageIN.route("/setMaxTemperature", setMaxTemperature);  //maximum temperature before starting fan
             messageIN.route("/setMinTemperature", setMinTemperature); //minimum temperature before stopping fan (if is running) and turn on light (?)
