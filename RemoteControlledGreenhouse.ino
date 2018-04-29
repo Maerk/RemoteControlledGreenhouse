@@ -219,13 +219,10 @@ void addIrrigationTime(OSCMessage& msg, int addrOffset)
     int t[3];
     for(int i = 0; i<3; i++)
         t[i] = msg.getInt(i);
-    if(t[0]>=0 && t[0]<=6 && t[1]>=0 && t[1]<=23 && t[2]>=0 && t[2]<=59)
-    {
-        tt.day = t[0];
-        tt.h = t[1];
-        tt.m = t[2];
-        GH->addIrrigation(tt);
-    }
+    tt.day = t[0];
+    tt.h = t[1];
+    tt.m = t[2];
+    GH->addIrrigation(tt);
 }
 
 void removeIrrigationTime(OSCMessage& msg, int addrOffset) 
