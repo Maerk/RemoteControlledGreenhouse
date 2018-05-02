@@ -173,6 +173,48 @@ void sendSensors(OSCMessage& msg, int addrOffset)
     bund.empty();
 }
 
+void getMaxTemperature(OSCMessage& msg, int addrOffset)
+{
+    OSCMessage smsg("/maxTemperature");
+    smsg.add((float)GH->getMaxTemperature());
+    senderOSC(smsg);
+}
+
+void getMinTemperature(OSCMessage& msg, int addrOffset)
+{
+    OSCMessage smsg("/minTemperature");
+    smsg.add((float)GH->getMinTemperature());
+    senderOSC(smsg);
+}
+
+void getMaxEnvHumidity(OSCMessage& msg, int addrOffset)
+{
+    OSCMessage smsg("/maxEnvHumidity");
+    smsg.add((int)GH->getMaxEnvHumidity());
+    senderOSC(smsg);
+}
+
+void getMinEnvHumidity(OSCMessage& msg, int addrOffset)
+{
+    OSCMessage smsg("/minEnvHumidity");
+    smsg.add((int)GH->getMinEnvHumidity());
+    senderOSC(smsg);
+}
+
+void getMaxGroundHumidity(OSCMessage& msg, int addrOffset)
+{
+    OSCMessage smsg("/maxGroundHumidity");
+    smsg.add((int)GH->getMaxGroundHumidity());
+    senderOSC(smsg);
+}
+
+void getMinGroundHumidity(OSCMessage& msg, int addrOffset)
+{
+    OSCMessage smsg("/minGroundHumidity");
+    smsg.add((int)GH->getMinGroundHumidity());
+    senderOSC(smsg);
+}
+
 void setMaxTemperature(OSCMessage& msg, int addrOffset) 
 {
     GH->setMaxTemperature(msg.getFloat(0));
@@ -266,6 +308,13 @@ void receiverOSC()
             messageIN.route("/getFanState", sendFanState);
             messageIN.route("/getIrrigationState", sendIrrigationState);
             messageIN.route("/getSensors", sendSensors);
+
+            messageIN.route("/getMaxTemperature", getMaxTemperature);
+            messageIN.route("/getMinTemperature", getMinTemperature);
+            messageIN.route("/getMaxEnvHumidity", getMaxEnvHumidity);
+            messageIN.route("/getMinEnvHumidity", getMinEnvHumidity);
+            messageIN.route("/getMaxGroundHumidity", getMaxGroundHumidity);
+            messageIN.route("/getMinGroundHumidity", getMinGroundHumidity);
             
             messageIN.route("/setMaxTemperature", setMaxTemperature);  //maximum temperature before starting fan
             messageIN.route("/setMinTemperature", setMinTemperature); //minimum temperature before stopping fan (if is running) and turn on light (?)
