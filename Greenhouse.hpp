@@ -35,6 +35,10 @@ private:
     int32_t fan_pin;
     int32_t valve_pin;
     int32_t light_pin;
+    uint64_t fan_t;
+    uint64_t fan_sec;
+    uint64_t valve_t;
+    uint64_t valve_sec;
     /*Data*/
     vector<TimeTable> week_tt;
     bool irrigation_time; // true: i use the week time table
@@ -83,8 +87,8 @@ public:
     void setIrrigationState(bool state);
     
     void turnLight(bool state);
-    void startFan(uint32_t seconds);
-    void startIrrigation(uint32_t seconds);
+    void startFan(uint64_t seconds);
+    void startIrrigation(uint64_t seconds);
     void addIrrigation(TimeTable tt);
     void removeIrrigation(uint32_t index);
     

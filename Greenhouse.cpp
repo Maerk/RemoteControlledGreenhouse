@@ -21,7 +21,9 @@ Greenhouse::Greenhouse(int32_t dht_pin, int32_t waterlevel_pin, int32_t moisture
     pinMode(moisture_pin, OUTPUT);
     pinMode(photoresistor_pin, INPUT);
     pinMode(fan_pin, OUTPUT);
+    digitalWrite(fan_pin, HIGH);
     pinMode(valve_pin, OUTPUT);
+    digitalWrite(valve_pin, HIGH);
     pinMode(light_pin, OUTPUT);
     pinMode(A0,INPUT);
     dht->begin();
@@ -148,19 +150,19 @@ void Greenhouse::turnLight(bool state)
         digitalWrite(light_pin, LOW);
     light_state = state;
 }
-void Greenhouse::startFan(uint32_t seconds)
+void Greenhouse::startFan(uint64_t seconds)
 {
+    fan_t = millis();
+    fan_sec = seconds*1000;
     fan_state = true;
-    /*
-     * run fan ...........................
-     */
+    digitalWrite(fan_pin,LOW); //lowtrigger
 }
-void Greenhouse::startIrrigation(uint32_t seconds)
+void Greenhouse::startIrrigation(uint64_t seconds)
 {
+    valve_t = millis();
+    valve_sec = seconds*1000;
     valve_state = true;
-    /*
-     * open valve ........................
-     */
+    digitalWrite(valve_pin,LOW);
 }
 void Greenhouse::addIrrigation(TimeTable tt)
 {
@@ -221,8 +223,26 @@ void Greenhouse::updateData()
     digitalWrite(waterlevel_pin, LOW);
 
     //Fan timer control and set fan_state=false
+    if(fan_state)
+    {
+        uint64_t now = millis();
+        if((now-fan_t)>=fan_sec)
+        {
+            fan_state = false;
+            digitalWrite(fan_pin,HIGH);
+        }
+    }
 
     //Valve timer control and set valve_state=false
+    if(valve_state)
+    {
+        uint64_t now = millis();
+        if((now-valve_t)>=valve_sec)
+        {
+            valve_state = false;
+            digitalWrite(valve_pin,HIGH);
+        }
+    }
 
     /*Serial.println("Moisture Sensor: " + String(ground_humidity));
     Serial.println("Water Level Sensor: " + String(water_level));
