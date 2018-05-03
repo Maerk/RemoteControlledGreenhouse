@@ -33,6 +33,7 @@ Greenhouse::Greenhouse(int32_t dht_pin, int32_t waterlevel_pin, int32_t moisture
     fan_state = false;
     valve_state = false;
     day_light = false;
+    auto_light = true;
     min_env_humidity = 20; // %
     max_env_humidity = 85; 
     min_ground_humidity = 1; // [0-4]
@@ -45,6 +46,8 @@ Greenhouse::Greenhouse(int32_t dht_pin, int32_t waterlevel_pin, int32_t moisture
     ground_humidity = 2; // [0-4]
     water_level = 2; // [0-4]
     temperature = 23.0; // C
+
+    epoch = 0;
 }
 float Greenhouse::getTemperature()
 {
@@ -111,6 +114,10 @@ bool Greenhouse::getIrrigationState()
 {
     return irrigation_time;
 }
+bool Greenhouse::getAutoLight()
+{
+    return auto_light;
+}
 void Greenhouse::setMaxTemperature(float temperature)
 {
     max_temperature = temperature;
@@ -139,6 +146,10 @@ void Greenhouse::setIrrigationState(bool state)
 {
     irrigation_time = state;
 }
+void Greenhouse::setAutoLight(bool state)
+{
+    auto_light = state;
+}
 void Greenhouse::turnLight(bool state)
 {
     /*
@@ -157,6 +168,11 @@ void Greenhouse::startFan(uint64_t seconds)
     fan_state = true;
     digitalWrite(fan_pin,LOW); //lowtrigger
 }
+void Greenhouse::stopFan()
+{
+    fan_state = false;
+    digitalWrite(fan_pin,HIGH);
+}
 void Greenhouse::startIrrigation(uint64_t seconds)
 {
     valve_t = millis();
@@ -164,15 +180,27 @@ void Greenhouse::startIrrigation(uint64_t seconds)
     valve_state = true;
     digitalWrite(valve_pin,LOW);
 }
+void Greenhouse::stopIrrigation()
+{
+    valve_state = false;
+    digitalWrite(valve_pin,HIGH);
+}
 void Greenhouse::addIrrigation(TimeTable tt)
 {
     if(week_tt.size() < MAX_TT_SIZE && tt.day>=0 && tt.day<=6 && tt.h>=0 && tt.h<=23 && tt.m>=0 && tt.m<=59)
+    {
+        tt.done = false;
         week_tt.push_back(tt);
+    }
 }
 void Greenhouse::removeIrrigation(uint32_t index)
 {
     if(index >= 0 && index < week_tt.size())
         week_tt.erase(week_tt.begin()+index);
+}
+void Greenhouse::setTime(uint64_t timer)
+{
+    epoch = timer;
 }
 void Greenhouse::updateData()
 {
@@ -195,7 +223,7 @@ void Greenhouse::updateData()
         env_humidity = event.relative_humidity;
         
     digitalWrite(moisture_pin, HIGH);
-    delay(1500);
+    delay(1000);
     int reada = analogRead(A0);
     if(reada<12)
         ground_humidity = 0; //very low
@@ -210,7 +238,7 @@ void Greenhouse::updateData()
     delay(200);
     
     digitalWrite(waterlevel_pin, HIGH);
-    delay(1500);
+    delay(1000);
     reada = analogRead(A0);
     if(reada<12)
         water_level = 0; //empty
@@ -227,10 +255,7 @@ void Greenhouse::updateData()
     {
         uint64_t now = millis();
         if((now-fan_t)>=fan_sec)
-        {
-            fan_state = false;
-            digitalWrite(fan_pin,HIGH);
-        }
+            stopFan();
     }
 
     //Valve timer control and set valve_state=false
@@ -238,9 +263,38 @@ void Greenhouse::updateData()
     {
         uint64_t now = millis();
         if((now-valve_t)>=valve_sec)
+            stopIrrigation();
+    }
+
+    if(temperature >= max_temperature || env_humidity >= max_env_humidity)
+        startFan(20);
+    if(temperature <= min_temperature || env_humidity <= min_env_humidity)
+        stopFan();
+    if(ground_humidity >= max_ground_humidity)
+        stopIrrigation();
+    if(ground_humidity <= min_ground_humidity)
+        startIrrigation(20);
+    if(auto_light)
+    {
+        if(!day_light && !light_state)
+            turnLight(true);
+        else if(day_light && light_state)
+            turnLight(false);
+    }
+    if(irrigation_time && !valve_state)
+    {
+        time_t t = epoch+millis()/1000;
+        struct tm * timeinfo = localtime(&t);
+        for(int i=0; i<week_tt.size(); i++)
         {
-            valve_state = false;
-            digitalWrite(valve_pin,HIGH);
+            if((timeinfo->tm_hour+UTC)%24 == 0 && timeinfo->tm_min == 0)
+                week_tt[i].done = false;
+            if(!week_tt[i].done && week_tt[i].day == timeinfo->tm_wday  && week_tt[i].h == (timeinfo->tm_hour+UTC)%24 && week_tt[i].m == timeinfo->tm_min)
+            {
+                startIrrigation(30);
+                week_tt[i].done = true;
+                break;
+            }
         }
     }
 

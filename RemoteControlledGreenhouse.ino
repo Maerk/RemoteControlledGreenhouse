@@ -20,6 +20,8 @@ using namespace std;
 WiFiUDP Udp;
 const byte MAX_MSG_SIZE PROGMEM=200;
 byte packetBuffer[MAX_MSG_SIZE];  //buffer to hold incoming udp packet
+IPAddress timeServerIP; // time.nist.gov NTP server address
+unsigned long timer;
 const String ssid="router_ssid";
 const String pass = "router_password";
 Greenhouse* GH;
@@ -41,12 +43,39 @@ void wifiSetup()
       Udp.begin(PORT);
 }
 
+//https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/examples/NTPClient/NTPClient.ino
+// send an NTP request to the time server at the given address
+void sendNTPpacket(IPAddress& address) {
+  Serial.println("sending NTP packet...");
+  // set all bytes in the buffer to 0
+  memset(packetBuffer, 0, MAX_MSG_SIZE);
+  // Initialize values needed to form NTP request
+  packetBuffer[0] = 0b11100011;   // LI, Version, Mode
+  packetBuffer[1] = 0;     // Stratum, or type of clock
+  packetBuffer[2] = 6;     // Polling Interval
+  packetBuffer[3] = 0xEC;  // Peer Clock Precision
+  // 8 bytes of zero for Root Delay & Root Dispersion
+  packetBuffer[12]  = 49;
+  packetBuffer[13]  = 0x4E;
+  packetBuffer[14]  = 49;
+  packetBuffer[15]  = 52;
+
+  // all NTP fields have been given values, now
+  // you can send a packet requesting a timestamp:
+  Udp.beginPacket(address, 123); //NTP requests are to port 123
+  Udp.write(packetBuffer, 48);
+  Udp.endPacket();
+}
+
 void setup() 
 {
     Serial.begin(115200);
     wifiSetup();
     GH = new Greenhouse();
     digitalWrite(LED_BUILTIN, HIGH); //turn off the led
+    
+    WiFi.hostByName("europe.pool.ntp.org", timeServerIP);
+    sendNTPpacket(timeServerIP); // send an NTP packet to a time server
 }
 
 void senderOSC(OSCMessage& msg)
@@ -143,6 +172,13 @@ void sendIrrigationState(OSCMessage& msg, int addrOffset)
     senderOSC(smsg);
 }
 
+void sendAutoLight(OSCMessage& msg, int addrOffset)
+{
+    OSCMessage smsg("/autoLight");
+    smsg.add((int)GH->getAutoLight());
+    senderOSC(smsg);
+}
+
 void sendSensors(OSCMessage& msg, int addrOffset)
 {
     OSCBundle bund;
@@ -155,6 +191,7 @@ void sendSensors(OSCMessage& msg, int addrOffset)
     bund.add("/valveState").add((int)GH->getValveState());
     bund.add("/fanState").add((int)GH->getFanState());
     bund.add("/irrigationState").add((int)GH->getIrrigationState());
+    bund.add("/autoLight").add((int)GH->getAutoLight());
     bund.add("/maxTemperature").add((float)GH->getMaxTemperature());
     bund.add("/minTemperature").add((float)GH->getMinTemperature());
     bund.add("/maxEnvHumidity").add((int)GH->getMaxEnvHumidity());
@@ -256,6 +293,11 @@ void setLight(OSCMessage& msg, int addrOffset)
     GH->turnLight(msg.getInt(0));
 }
 
+void setAutoLight(OSCMessage& msg, int addrOffset)
+{
+    GH->setAutoLight(msg.getInt(0));
+}
+
 void setIrrigationTime(OSCMessage& msg, int addrOffset)
 {
     GH->setIrrigationState(msg.getInt(0));
@@ -299,47 +341,61 @@ void receiverOSC()
         Serial.printf("Received %d bytes from %s, port %d\n", size, Udp.remoteIP().toString().c_str(), Udp.remotePort());
         Udp.read(packetBuffer,size);
         Serial.printf("%s\n",packetBuffer);
-        messageIN.fill(packetBuffer,size);
-        if(!messageIN.hasError()) 
+        
+        if(timeServerIP == Udp.remoteIP())
         {
-            messageIN.route("/oscPing", sendOk);
-            messageIN.route("/getTemperature", sendTemperature);
-            messageIN.route("/getEnvHumidity", sendEnvHumidity);
-            messageIN.route("/getGroundHumidity", sendGroundHumidity);
-            messageIN.route("/getWaterLevel", sendWaterLevel);
-            messageIN.route("/getLightSensor", sendLightSensor); //sensor return 1(day) or 0(night)
-            messageIN.route("/getWeekTimeTable", sendWeekTimeTable); //return week time table with indexes
-            messageIN.route("/getLightState", sendLightState);
-            messageIN.route("/getValveState", sendValveState);
-            messageIN.route("/getFanState", sendFanState);
-            messageIN.route("/getIrrigationState", sendIrrigationState);
-            messageIN.route("/getSensors", sendSensors);
-
-            messageIN.route("/getMaxTemperature", sendMaxTemperature);
-            messageIN.route("/getMinTemperature", sendMinTemperature);
-            messageIN.route("/getMaxEnvHumidity", sendMaxEnvHumidity);
-            messageIN.route("/getMinEnvHumidity", sendMinEnvHumidity);
-            messageIN.route("/getMaxGroundHumidity", sendMaxGroundHumidity);
-            messageIN.route("/getMinGroundHumidity", sendMinGroundHumidity);
-            
-            messageIN.route("/setMaxTemperature", setMaxTemperature);  //maximum temperature before starting fan
-            messageIN.route("/setMinTemperature", setMinTemperature); //minimum temperature before stopping fan (if is running) and turn on light (?)
-            messageIN.route("/setMaxEnvHumidity", setMaxEnvHumidity);  //maximum humidity before starting fan
-            messageIN.route("/setMinEnvHumidity", setMinEnvHumidity);  //minimum temperature before stopping fan (if is running)
-            messageIN.route("/setMaxGroundHumidity", setMaxGroundHumidity); //maximum ground humidity, check if the valve is open and close it
-            messageIN.route("/setMinGroundHumidity", setMinGroundHumidity); //minimum ground humidity before starting irrigation
-            //messageIN.route("/setAlarmWaterLevel", setAlarmWaterLevel); //alarm water level (?)
-
-            messageIN.route("/addIrrigationTime", addIrrigationTime);  //it's the time of the waterings, parameters:[(WeekDay,Hour,Min), ...]
-            messageIN.route("/removeIrrigationTime", removeIrrigationTime);  //remove a time of the waterings, parameter: index of the week time table
-            messageIN.route("/autoIrrigation", setIrrigationTime);  //if 1 set irrigation_time = true else false
-            
-            messageIN.route("/startIrrigation", startIrrigation);  //open the valve for T seconds
-            messageIN.route("/startFan", startFan);  //start fan for T seconds
-            messageIN.route("/light", setLight);  //if 1 turn on  the light else turn off
+            unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
+            unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
+            timer = (highWord << 16 | lowWord) - 2208988800UL;
+            Serial.printf("epoch: %lu\n",timer);
+            GH->setTime(timer);
         }
-        else 
-            Serial.println("Error: " + messageIN.getError());
+        else
+        {
+            messageIN.fill(packetBuffer,size);
+            if(!messageIN.hasError()) 
+            {
+                messageIN.route("/oscPing", sendOk);
+                messageIN.route("/getTemperature", sendTemperature);
+                messageIN.route("/getEnvHumidity", sendEnvHumidity);
+                messageIN.route("/getGroundHumidity", sendGroundHumidity);
+                messageIN.route("/getWaterLevel", sendWaterLevel);
+                messageIN.route("/getLightSensor", sendLightSensor); //sensor return 1(day) or 0(night)
+                messageIN.route("/getWeekTimeTable", sendWeekTimeTable); //return week time table with indexes
+                messageIN.route("/getLightState", sendLightState);
+                messageIN.route("/getValveState", sendValveState);
+                messageIN.route("/getFanState", sendFanState);
+                messageIN.route("/getIrrigationState", sendIrrigationState);
+                messageIN.route("/getAutoLight", sendAutoLight);
+                messageIN.route("/getSensors", sendSensors);
+    
+                messageIN.route("/getMaxTemperature", sendMaxTemperature);
+                messageIN.route("/getMinTemperature", sendMinTemperature);
+                messageIN.route("/getMaxEnvHumidity", sendMaxEnvHumidity);
+                messageIN.route("/getMinEnvHumidity", sendMinEnvHumidity);
+                messageIN.route("/getMaxGroundHumidity", sendMaxGroundHumidity);
+                messageIN.route("/getMinGroundHumidity", sendMinGroundHumidity);
+                
+                messageIN.route("/setMaxTemperature", setMaxTemperature);  //maximum temperature before starting fan
+                messageIN.route("/setMinTemperature", setMinTemperature); //minimum temperature before stopping fan (if is running) and turn on light (?)
+                messageIN.route("/setMaxEnvHumidity", setMaxEnvHumidity);  //maximum humidity before starting fan
+                messageIN.route("/setMinEnvHumidity", setMinEnvHumidity);  //minimum temperature before stopping fan (if is running)
+                messageIN.route("/setMaxGroundHumidity", setMaxGroundHumidity); //maximum ground humidity, check if the valve is open and close it
+                messageIN.route("/setMinGroundHumidity", setMinGroundHumidity); //minimum ground humidity before starting irrigation
+                //messageIN.route("/setAlarmWaterLevel", setAlarmWaterLevel); //alarm water level (?)
+    
+                messageIN.route("/addIrrigationTime", addIrrigationTime);  //it's the time of the waterings, parameters:[(WeekDay,Hour,Min), ...]
+                messageIN.route("/removeIrrigationTime", removeIrrigationTime);  //remove a time of the waterings, parameter: index of the week time table
+                messageIN.route("/autoIrrigation", setIrrigationTime);  //if 1 set irrigation_time = true else false
+                messageIN.route("/autoLight", setAutoLight); //if 1 set auto_light true else false
+                
+                messageIN.route("/startIrrigation", startIrrigation);  //open the valve for T seconds
+                messageIN.route("/startFan", startFan);  //start fan for T seconds
+                messageIN.route("/light", setLight);  //if 1 turn on  the light else turn off
+            }
+            else 
+                Serial.println("Error: " + messageIN.getError());
+        }
         Udp.flush();
     }
 }
