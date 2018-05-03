@@ -155,6 +155,12 @@ void sendSensors(OSCMessage& msg, int addrOffset)
     bund.add("/valveState").add((int)GH->getValveState());
     bund.add("/fanState").add((int)GH->getFanState());
     bund.add("/irrigationState").add((int)GH->getIrrigationState());
+    bund.add("/maxTemperature").add((float)GH->getMaxTemperature());
+    bund.add("/minTemperature").add((float)GH->getMinTemperature());
+    bund.add("/maxEnvHumidity").add((int)GH->getMaxEnvHumidity());
+    bund.add("/minEnvHumidity").add((int)GH->getMinEnvHumidity());
+    bund.add("/maxGroundHumidity").add((int)GH->getMaxGroundHumidity());
+    bund.add("/minGroundHumidity").add((int)GH->getMinGroundHumidity());
     OSCMessage& msgs = bund.add("/weekTimeTable");
     vector<TimeTable> tt = GH->getWeekTimeTable();
     for(int i=0; i<tt.size(); i++)
@@ -173,42 +179,42 @@ void sendSensors(OSCMessage& msg, int addrOffset)
     bund.empty();
 }
 
-void getMaxTemperature(OSCMessage& msg, int addrOffset)
+void sendMaxTemperature(OSCMessage& msg, int addrOffset)
 {
     OSCMessage smsg("/maxTemperature");
     smsg.add((float)GH->getMaxTemperature());
     senderOSC(smsg);
 }
 
-void getMinTemperature(OSCMessage& msg, int addrOffset)
+void sendMinTemperature(OSCMessage& msg, int addrOffset)
 {
     OSCMessage smsg("/minTemperature");
     smsg.add((float)GH->getMinTemperature());
     senderOSC(smsg);
 }
 
-void getMaxEnvHumidity(OSCMessage& msg, int addrOffset)
+void sendMaxEnvHumidity(OSCMessage& msg, int addrOffset)
 {
     OSCMessage smsg("/maxEnvHumidity");
     smsg.add((int)GH->getMaxEnvHumidity());
     senderOSC(smsg);
 }
 
-void getMinEnvHumidity(OSCMessage& msg, int addrOffset)
+void sendMinEnvHumidity(OSCMessage& msg, int addrOffset)
 {
     OSCMessage smsg("/minEnvHumidity");
     smsg.add((int)GH->getMinEnvHumidity());
     senderOSC(smsg);
 }
 
-void getMaxGroundHumidity(OSCMessage& msg, int addrOffset)
+void sendMaxGroundHumidity(OSCMessage& msg, int addrOffset)
 {
     OSCMessage smsg("/maxGroundHumidity");
     smsg.add((int)GH->getMaxGroundHumidity());
     senderOSC(smsg);
 }
 
-void getMinGroundHumidity(OSCMessage& msg, int addrOffset)
+void sendMinGroundHumidity(OSCMessage& msg, int addrOffset)
 {
     OSCMessage smsg("/minGroundHumidity");
     smsg.add((int)GH->getMinGroundHumidity());
@@ -309,12 +315,12 @@ void receiverOSC()
             messageIN.route("/getIrrigationState", sendIrrigationState);
             messageIN.route("/getSensors", sendSensors);
 
-            messageIN.route("/getMaxTemperature", getMaxTemperature);
-            messageIN.route("/getMinTemperature", getMinTemperature);
-            messageIN.route("/getMaxEnvHumidity", getMaxEnvHumidity);
-            messageIN.route("/getMinEnvHumidity", getMinEnvHumidity);
-            messageIN.route("/getMaxGroundHumidity", getMaxGroundHumidity);
-            messageIN.route("/getMinGroundHumidity", getMinGroundHumidity);
+            messageIN.route("/getMaxTemperature", sendMaxTemperature);
+            messageIN.route("/getMinTemperature", sendMinTemperature);
+            messageIN.route("/getMaxEnvHumidity", sendMaxEnvHumidity);
+            messageIN.route("/getMinEnvHumidity", sendMinEnvHumidity);
+            messageIN.route("/getMaxGroundHumidity", sendMaxGroundHumidity);
+            messageIN.route("/getMinGroundHumidity", sendMinGroundHumidity);
             
             messageIN.route("/setMaxTemperature", setMaxTemperature);  //maximum temperature before starting fan
             messageIN.route("/setMinTemperature", setMinTemperature); //minimum temperature before stopping fan (if is running) and turn on light (?)
