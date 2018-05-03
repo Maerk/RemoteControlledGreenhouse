@@ -80,7 +80,7 @@ uint8_t Greenhouse::getMaxGroundHumidity()
 }
 uint8_t Greenhouse::getMinGroundHumidity()
 {
-    return max_ground_humidity;
+    return min_ground_humidity;
 }
 uint8_t Greenhouse::getWaterLevel()
 {
