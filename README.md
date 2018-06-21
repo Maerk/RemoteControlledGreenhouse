@@ -1,5 +1,5 @@
 # RemoteControlledGreenhouse
-=======
+
 This project allows you to control with the OSC protocol a greenhouse.
 The greenhouse is automated, so if the hygrometer marks a soil humidity that is too low the solenoid valve is opened to water,
 if the temperature or humidity is too high the fans are activated and so on (the minimum and maximum levels are they can set).
