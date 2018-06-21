@@ -22,7 +22,8 @@ The light can be automatic, so it lights up in the dark, or manually
 ## Used libraries
   * [ESP8266WiFi](https://github.com/esp8266/Arduino/tree/master/libraries/ESP8266WiFi)
   * [OSC CNMAT](https://github.com/CNMAT/OSC)
-  
+  * [Adafruit Sensor](https://github.com/adafruit/Adafruit_Sensor)
+  * [DHT sensor library](https://github.com/adafruit/DHT-sensor-library)
 ## License
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
